@@ -538,18 +538,17 @@ function makeCard(w,i){
 
 function renderGrid(works){
   const grid=document.getElementById('works-grid');
-  grid.innerHTML='';
+  grid.querySelectorAll('.works-col').forEach(e=>e.remove());
   const empty=document.getElementById('works-empty');
   const fade=document.getElementById('works-fade');
   const showmore=document.getElementById('works-showmore');
   if(!works.length){
-    empty.style.display='';
-    grid.appendChild(empty);
-    fade.classList.remove('visible');
-    showmore.classList.remove('visible');
+    if(empty) empty.style.display='';
+    if(fade) fade.classList.remove('visible');
+    if(showmore) showmore.classList.remove('visible');
     return;
   }
-  empty.style.display='none';
+  if(empty) empty.style.display='none';
 
   const cols=getColCount();
   const limit=cols*2; // always 2 rows
