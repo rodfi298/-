@@ -450,8 +450,7 @@ async function init() {
     type:(r.type||r.Type||'video').toLowerCase(),
     year:r.year||r.Year||'',
     client:r.client||r.Client||'',
-    desc:r.desc||r.Desc||r.description||'',
-    thumb:r.thumb||r.Thumb||''
+    desc:r.desc||r.Desc||r.description||''
   })).filter(w=>w.title&&w.src);
   visibleWorks=[...allWorks];
   renderFilters(allWorks);
@@ -523,24 +522,11 @@ function makeCard(w,i){
   const yt=ytId(w.src);const vi=viId(w.src);
   const badge=w.type==='video'?'▶ Video':'◼ Photo';
   let media='';
-  // Thumb priority: Cloudinary > YouTube > Drive
-  const thumbSrc = w.thumb
-    ? w.thumb
-    : gid
-      ? `https://drive.google.com/thumbnail?id=${gid}&sz=w800`
-      : yt
-        ? `https://img.youtube.com/vi/${yt}/mqdefault.jpg`
-        : null;
-
-  if(thumbSrc){
-    media=`<img src="${thumbSrc}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;" onerror="this.src='https://drive.google.com/thumbnail?id=${gid}&sz=w400'">`;
-  } else if(vi){
-    media=`<div style="width:100%;aspect-ratio:16/9;background:#eee;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:2rem;">▶</div>`;
-  } else if(w.type==='video'){
-    media=`<video src="${w.src}" muted loop playsinline preload="metadata" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;"></video>`;
-  } else {
-    media=`<img src="${w.src}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;">`;
-  }
+  if(gid) media=`<img src="https://drive.google.com/thumbnail?id=${gid}&sz=w400" loading="lazy" onerror="this.style.opacity='.3'">`;
+  else if(yt) media=`<img src="https://img.youtube.com/vi/${yt}/mqdefault.jpg" loading="lazy">`;
+  else if(vi) media=`<div style="width:100%;aspect-ratio:16/9;background:#eee;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:2rem;">▶</div>`;
+  else if(w.type==='video') media=`<video src="${w.src}" muted loop playsinline preload="metadata"></video>`;
+  else media=`<img src="${w.src}" loading="lazy">`;
   el.innerHTML=`${media}<div class="woverlay"><p class="wcard-title">${w.title}</p><p class="wcard-cat">${w.category}${w.year?' · '+w.year:''}</p></div><div class="wbadge">${badge}</div>`;
   if(w.type==='video'&&!gid&&!yt&&!vi){
     el.addEventListener('mouseenter',()=>{const v=el.querySelector('video');if(v)v.play();});
@@ -552,17 +538,18 @@ function makeCard(w,i){
 
 function renderGrid(works){
   const grid=document.getElementById('works-grid');
-  grid.querySelectorAll('.works-col').forEach(e=>e.remove());
+  grid.innerHTML='';
   const empty=document.getElementById('works-empty');
   const fade=document.getElementById('works-fade');
   const showmore=document.getElementById('works-showmore');
   if(!works.length){
-    if(empty) empty.style.display='';
-    if(fade) fade.classList.remove('visible');
-    if(showmore) showmore.classList.remove('visible');
+    empty.style.display='';
+    grid.appendChild(empty);
+    fade.classList.remove('visible');
+    showmore.classList.remove('visible');
     return;
   }
-  if(empty) empty.style.display='none';
+  empty.style.display='none';
 
   const cols=getColCount();
   const limit=cols*2; // always 2 rows
