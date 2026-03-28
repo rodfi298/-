@@ -229,7 +229,7 @@ function makeCard(w, globalIdx) {
   const vi = viId(w.src);
   const badge = w.type === 'video' ? '▶ Video' : '◼ Photo';
   let media = '';
-  if (gid) media = `<img src="https://drive.google.com/thumbnail?id=${gid}&sz=w800" loading="lazy" onerror="this.style.opacity='.3'">`;
+  if (gid) media = `<img src="https://drive.google.com/thumbnail?id=${gid}&sz=w400" loading="lazy" onerror="this.style.opacity='.3'">`;
   else if (yt) media = `<img src="https://img.youtube.com/vi/${yt}/mqdefault.jpg" loading="lazy">`;
   else if (vi) media = `<div style="width:100%;aspect-ratio:16/9;background:#eee;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:2rem;">▶</div>`;
   else if (w.type === 'video') media = `<video src="${w.src}" muted loop playsinline preload="metadata"></video>`;
@@ -299,10 +299,13 @@ document.addEventListener('keydown', e => {
 });
 
 // Re-render on resize
-let resizeTimer;
+let resizeTimer, lastWidth = window.innerWidth;
 window.addEventListener('resize', () => {
+  const newWidth = window.innerWidth;
+  if (newWidth === lastWidth) return; // iOS: игнорируем resize по высоте (адресная строка)
+  lastWidth = newWidth;
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => { if (visibleWorks.length) renderGrid(visibleWorks); }, 200);
+  resizeTimer = setTimeout(() => { if (visibleWorks.length) renderGrid(visibleWorks); }, 300);
 });
 
 init();
