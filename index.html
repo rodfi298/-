@@ -80,7 +80,9 @@ section{padding:6vmin 5vw;border-bottom:1px solid rgba(0,0,0,.07);}
 .works-grid{display:flex;gap:2px;}
 .works-col{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;}
 .wcard{position:relative;background:#f5f5f5;overflow:hidden;cursor:pointer;display:block;}
-.wcard img,.wcard video{width:100%;height:auto;display:block;transition:transform .6s cubic-bezier(.25,.46,.45,.94);}
+.wcard-media{width:100%;aspect-ratio:16/9;background:#e8e8e8;overflow:hidden;position:relative;display:block;}
+.wcard img,.wcard video{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .4s ease,transform .6s cubic-bezier(.25,.46,.45,.94);}
+.wcard img.loaded,.wcard video.loaded{opacity:1;}
 .wcard:hover img,.wcard:hover video{transform:scale(1.04);}
 .woverlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.88) 0%,rgba(0,0,0,.15) 45%,transparent 70%);opacity:0;transition:opacity .35s;display:flex;flex-direction:column;justify-content:flex-end;padding:1.2rem;}
 .wcard:hover .woverlay{opacity:1;}
@@ -414,6 +416,31 @@ function viId(url){const m=(url||'').match(/vimeo\.com\/(\d+)/);return m?m[1]:nu
 
 let allWorks=[],visibleWorks=[],lbIdx=0;
 
+// IntersectionObserver — загружаем картинку только когда она входит в viewport
+// После загрузки — fade-in через opacity, больше не выгружается
+const cardObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (!entry.isIntersecting) return;
+    const el = entry.target;
+    const src = el.getAttribute('data-src');
+    if (!src) return;
+    if (el.tagName === 'VIDEO') {
+      el.src = src;
+      el.load();
+      el.classList.add('loaded');
+    } else {
+      el.onload = () => el.classList.add('loaded');
+      el.onerror = () => { el.style.display='none'; };
+      el.src = src;
+    }
+    el.removeAttribute('data-src');
+    cardObserver.unobserve(el);
+  });
+}, {
+  rootMargin: '200px 0px', // начинаем грузить за 200px до появления
+  threshold: 0
+});
+
 function isMobile(){return window.innerWidth<=640;}
 
 async function init() {
@@ -522,16 +549,15 @@ function makeCard(w,i){
   const yt=ytId(w.src);const vi=viId(w.src);
   const badge=w.type==='video'?'▶ Video':'◼ Photo';
   let media='';
-  if(gid) media=`<img src="https://drive.google.com/thumbnail?id=${gid}&sz=w400" loading="lazy" onerror="this.style.opacity='.3'">`;
+  if(gid) media=`<img src="https://drive.google.com/thumbnail?id=${gid}&sz=w800" loading="lazy" onerror="this.style.opacity='.3'">`;
   else if(yt) media=`<img src="https://img.youtube.com/vi/${yt}/mqdefault.jpg" loading="lazy">`;
   else if(vi) media=`<div style="width:100%;aspect-ratio:16/9;background:#eee;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:2rem;">▶</div>`;
   else if(w.type==='video') media=`<video src="${w.src}" muted loop playsinline preload="metadata"></video>`;
   else media=`<img src="${w.src}" loading="lazy">`;
   el.innerHTML=`${media}<div class="woverlay"><p class="wcard-title">${w.title}</p><p class="wcard-cat">${w.category}${w.year?' · '+w.year:''}</p></div><div class="wbadge">${badge}</div>`;
-  if(w.type==='video'&&!gid&&!yt&&!vi){
-    el.addEventListener('mouseenter',()=>{const v=el.querySelector('video');if(v)v.play();});
-    el.addEventListener('mouseleave',()=>{const v=el.querySelector('video');if(v){v.pause();v.currentTime=0;}});
-  }
+  // Подключаем observer к img/video с data-src
+  const mediaNode=el.querySelector('[data-src]');
+  if(mediaNode) cardObserver.observe(mediaNode);
   el.addEventListener('click',()=>{lbIdx=i;openLb();});
   return el;
 }
